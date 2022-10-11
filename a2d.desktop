@@ -1,0 +1,12 @@
+[Desktop Entry]
+Name=Appimage2Deb
+Name[zh]=A2D 软件打包
+Comment=Convert AppImage into Deb Package
+Comment[zh]=将 AppImage 可执行镜像转换成 Deb 安装包
+Exec=AppRun
+Icon=a2d
+Type=Application
+Categories=System;
+Terminal=false
+Keywords=a2d;system;appimage2deb;package;deb;software;
+X-AppImage-Version=2.1b20221011

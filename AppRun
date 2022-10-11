@@ -1,0 +1,348 @@
+#!/bin/bash
+#__no_parms_run_gui__
+if [ "$1" = "" ]; then
+	A2DGUI="yes"
+else
+	A2DGUI="no"
+fi
+
+#__help_message__
+help()
+{
+	echo "Welcome to use Appimage2Deb Kitchen!"
+	echo "> Appimage2Deb 2.1b20221011"
+	echo "> Copyright (c) 2021 xRetia Labs, uniartisan"
+	echo ""
+	echo "About xRetia Labs"
+	echo "> The xRetia Labs is apart of FC-SYSTEM which working for opensource project."
+	echo "> Copyright (c) 2012-2020 FC-SYSTEM (dfc643.github.io)"
+	echo ""
+	echo ""
+	echo "Required:"
+	echo "        -n | --name <package_name>      what's the name of your package?"
+	echo "        -v | --version <version>        which version of your package?"
+	echo "        -a | --arch <architecture>      which architecture of your software made?"
+	echo "                                            x86: i386, amd64"
+	echo "                                            ARM: armel, armhf, arm64"
+	echo "                                            MIPS: mips, mips64el, mipsel"
+	echo "                                            ppc64el, s390x, all"
+	echo "        -f | --file-appimage <path>     full path of your appimage executable"
+	echo ""
+	echo "Options:"
+	echo "        --no-sandbox                    disable sandbox for appimage executable"
+	echo "        -h | --help                     show this help message"
+	echo ""
+}
+
+#__gui_with_zenity__
+gui()
+{
+	#__welcome__
+	zenity --warning --title="Appimage2Deb" \
+		--width 500 \
+		--text="欢迎使用 Appimage2Deb，是一个由 xRetia Labs, uniartisan 创建的 AppImage 转换工具，可以帮助你快速完成 AppImage 转换为 Deb 软件包。"
+	
+	#__file_selection__
+	A2DFILE=$(zenity --file-selection --file-filter="*.appimage")
+	if [ "$A2DFILE" = "" ]
+	then
+		zenity --warning --title="Appimage2Deb" \
+			--width 200 \
+			--text="您取消了文件选择，再见！"
+		exit 1
+	fi
+	
+	#__get_form_input__
+	A2DFORM=$(zenity --forms --title="Appimage2Deb" --text="创建 Deb 软件包" \
+	   --add-entry="软件包名" \
+	   --add-entry="软件版本" \
+	   --add-list="软件架构" --list-values="amd64|i386|all")
+	A2DNAME=$(echo $A2DFORM | awk -F\| '{print $1}')
+	A2DVER=$(echo $A2DFORM | awk -F\| '{print $2}')
+	A2DARCH=$(echo $A2DFORM | awk -F\| '{print $3}')
+	
+	#__check_input__
+	if [ "$A2DNAME" = "" ]
+	then
+		zenity --warning --title="Appimage2Deb" \
+			--width 200 \
+			--text="您没有输入有效的软件软件包名，再见！"
+		exit 1
+	fi
+	
+	if [ "$A2DARCH" = "" ]
+	then
+		zenity --warning --title="Appimage2Deb" \
+			--width 200 \
+			--text="您没有选择软件架构，再见！"
+		exit 1
+	fi
+	
+	if [ "$A2DVER" = "" ]
+	then
+		zenity --warning --title="Appimage2Deb" \
+			--width 200 \
+			--text="您没有输入有效的软件版本号，再见！"
+		exit 1
+	fi
+}
+
+#__check_args_user_given__
+check_args()
+{
+	if [ ! -f $A2DFILE ]
+	then
+		echo "Appimage2Deb: **Error**: The specified *.AppImage file was not found!"
+		echo "> A2DFILE: $A2DFILE"
+		exit 1
+	fi
+	
+	if [ "$A2DNAME" = "" ]
+	then
+		echo "Appimage2Deb: **Error**: You must give a name for your package, but '$A2DNAME' you given."
+		exit 1
+	fi
+	
+	if [ "$A2DARCH" = "" ]
+	then
+		echo "Appimage2Deb: **Error**: You must specify architecture for your package, just like i386, amd64, mipsel etc."
+		exit 1
+	fi
+	
+	if [ "$A2DVER" = "" ]
+	then
+		echo "Appimage2Deb: **Error**: You must specify version for your package, just like '1.0b20201214'."
+		exit 1
+	fi
+}
+
+#__config_edit__
+config_edit()
+{
+	CONFIG="$3"
+	sed -i "s#$1=.*#$1=$2#g" $CONFIG
+}
+
+#__process__
+a2dconvert()
+{
+	#__remove_old_create_new_seed__
+	if [ "$A2DGUI" = "yes" ]; then
+	    echo "10"
+		echo "# 正在准备工作环境 ..."
+	fi
+	printf "%-60s" "* preparing working directory ..."
+	rm -rf /tmp/App2Deb_*
+	mkdir /tmp/$A2DSEED
+	cd /tmp/$A2DSEED
+	printf "%20s\n" "[ OK ]"
+
+	#__create_deb_structure__
+	if [ "$A2DGUI" = "yes" ]; then
+	    echo "20"
+		echo "# 正在创建 Deb 软件包目录结构 ..."
+	fi
+	printf "%-60s" "* creating deb package directory structures ..."
+	A2DSEEDPKG="/tmp/$A2DSEED/CONTENTS/opt/durapps/a2d-packages/$A2DNAME"
+	A2DSEEDDESK="/tmp/$A2DSEED/CONTENTS/usr/share/applications"
+	mkdir -p $A2DSEEDPKG
+	cp $A2DFILE $A2DSEEDPKG/base.AppImage
+	chmod +x $A2DSEEDPKG/base.AppImage
+	printf "%20s\n" "[ OK ]"
+
+	#__get_icon_from_appimage__
+	if [ "$A2DGUI" = "yes" ]; then
+	    echo "30"
+		echo "# 正在从 AppImage 中提取图标资源 ..."
+	fi
+	printf "%-60s" "* extracting application icon from appimage ..."
+	chmod +x $A2DFILE
+	$A2DFILE --appimage-extract >/dev/null 2>&1
+	cp squashfs-root/*.svg $A2DSEEDPKG/$A2DNAME.svg >/dev/null 2>&1
+	cp squashfs-root/*.png $A2DSEEDPKG/$A2DNAME.png >/dev/null 2>&1
+	printf "%20s\n" "[ OK ]"
+
+	#__get_desktop_from_appimage__
+	printf "%-60s" "* extracting application desktop from appimage ..."
+	mkdir -p $A2DSEEDDESK/
+	cp squashfs-root/*.desktop $A2DSEEDDESK/$A2DNAME.desktop >/dev/null 2>&1
+	if [ "$A2DSAND" = "yes" ]
+	then
+		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DNAME/base.AppImage --no-sandbox" $A2DSEEDDESK/$A2DNAME.desktop
+	else
+		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DNAME/base.AppImage" $A2DSEEDDESK/$A2DNAME.desktop
+	fi
+	if [ -f $A2DSEEDPKG/$A2DNAME.svg ]
+	then
+		config_edit "Icon" "/opt/durapps/a2d-packages/$A2DNAME/$A2DNAME.svg" $A2DSEEDDESK/$A2DNAME.desktop
+	else
+		config_edit "Icon" "/opt/durapps/a2d-packages/$A2DNAME/$A2DNAME.png" $A2DSEEDDESK/$A2DNAME.desktop
+	fi
+	#config_edit "Name" "$A2DNAME" $A2DSEEDDESK/$A2DNAME.desktop
+	chmod +x $A2DSEEDDESK/$A2DNAME.desktop
+	printf "%20s\n" "[ OK ]"
+
+	#__debian_control__
+	if [ "$A2DGUI" = "yes" ]; then
+	    echo "50"
+		echo "# 正在生成 Deb 包信息文件 ..."
+	fi
+	printf "%-60s" "* generating deb package information ..."
+	rm -rf /tmp/$A2DSEED/DEBIAN/control
+	mkdir -p /tmp/$A2DSEED/DEBIAN/
+	cat <<EOF > /tmp/$A2DSEED/DEBIAN/control
+Package: $A2DNAME
+Version: $A2DVER
+Architecture: $A2DARCH
+Description: $A2DNAME Software Package created by Appimage2Deb
+Depends: 
+Maintainer: spark-store
+EOF
+	printf "%20s\n" "[ OK ]"
+
+	#__create_deb__
+	if [ "$A2DGUI" = "yes" ]; then
+	    echo "60"
+		echo "# 正在将软件打包成 Deb 软件包 ..."
+	fi
+	printf "%-60s" "* deb packaging is in-progress ..."
+	$A2DDIR/deb-build.sh -c gzip >/dev/null 2>&1
+	mv /tmp/$A2DSEED/*.deb $A2DCURDIR/
+	printf "%20s\n" "[ OK ]"
+
+	#__clean__
+	if [ "$A2DGUI" = "yes" ]; then
+	    echo "95"
+		echo "# 打包完成，正在清理工作目录 ..."
+		sleep 1
+	fi
+	printf "%-60s" "* cleanning working directory ..."
+	cd $A2DCURDIR/
+	rm -rf /tmp/App2Deb_* >/dev/null 2>&1
+	printf "%20s\n" "[ OK ]"
+
+	if [ "$A2DGUI" = "yes" ]; then
+	    echo "99"
+		echo "# 打包完成 ..."
+		sleep 3
+	fi
+	echo "Appimage2Deb: Package Generated Successfully!"
+}
+
+
+#------------------------Start-Menu---------------------------
+POSITIONAL=()
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case $key in
+    -f|--file-appimage)
+    A2DFILE="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -n|--name)
+    A2DNAME="$2"
+    shift # past argument
+    shift # past value
+    ;;
+    -a|--arch)
+    A2DARCH="$2"
+    shift # past argument
+    shift # past value
+    ;;
+	--no-sandbox)
+	if [ "$1" = "--no-sandbox" ]; then
+		A2DSAND="yes"
+	else
+		A2DSAND=""
+	fi
+    shift # past argument
+    shift # past value
+    ;;
+	-v|--version)
+    A2DVER="$2"
+    shift # past argument
+    shift # past value
+    ;;
+	-h|--help)
+	if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+		A2DHELP="yes"
+	else
+		A2DHELP=""
+	fi
+    shift # past argument
+    shift # past value
+    ;;
+    --default)
+    DEFAULT=YES
+    shift # past argument
+    ;;
+    *)    # unknown option
+    POSITIONAL+=("$1") # save it in an array for later
+    shift # past argument
+    ;;
+esac
+done
+set -- "${POSITIONAL[@]}" # restore positional parameters
+#-------------------------End-Menu----------------------------
+
+
+#__show_help__
+if [ "$A2DHELP" = "yes" ]
+then
+	help
+	exit 1
+fi
+
+
+
+#__ui_with_check_args__
+if [ "$A2DGUI" = "yes" ]
+then
+    gui
+else
+	check_args
+fi
+
+#__step_1__
+A2DFILE=$(realpath $A2DFILE)
+A2DSEED="App2Deb_$(date +%s)"
+A2DCURDIR=${A2DFILE%/*}
+A2DDIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+
+
+#__show_info__
+echo "Welcome to use Appimage2Deb Kitchen!"
+echo "> Appimage2Deb 1.0b20201214"
+echo "> Copyright (c) 2021 xRetia Labs"
+echo ""
+echo "********************************************************************************"
+echo "APPIMAGE        = ${A2DFILE}"
+echo "PACKAGE NAME    = ${A2DNAME}"
+echo "ARCHITECTURE    = ${A2DARCH}"
+echo "VERSION         = ${A2DVER}"
+echo "RANDOM SEED     = ${A2DSEED}"
+echo "********************************************************************************"
+echo ""
+
+#__ui__
+if [ "$A2DGUI" = "yes" ]
+then
+	(a2dconvert) |
+	zenity --progress --width 300\
+		--title="Appimage2Deb" \
+		--text="正在转换中" \
+		--percentage=0 \
+		--auto-close \
+		--auto-kill
+	zenity --warning --title="Appimage2Deb" \
+			--width 200 \
+			--text="打包成功，点击确定后打开 deb 软件包所在目录！"
+	xdg-open $A2DCURDIR/
+else
+	a2dconvert
+fi
+
+exit 0

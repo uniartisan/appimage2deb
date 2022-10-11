@@ -1,0 +1,6 @@
+Package: a2d
+Version: 2.1b20221011
+Architecture: amd64
+Description: Convert AppImage into Deb Package
+Depends: 
+Maintainer: uniartisan
