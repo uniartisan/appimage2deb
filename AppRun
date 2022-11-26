@@ -10,7 +10,7 @@ fi
 help()
 {
 	echo "Welcome to use Appimage2Deb Kitchen!"
-	echo "> Appimage2Deb 2.1b20221011"
+	echo "> Appimage2Deb 2.1b20221127"
 	echo "> Copyright (c) 2021 xRetia Labs, uniartisan"
 	echo ""
 	echo "About xRetia Labs"
@@ -196,6 +196,7 @@ Version: $A2DVER
 Architecture: $A2DARCH
 Description: $A2DNAME Software Package created by Appimage2Deb
 Depends: 
+ libfuse2
 Maintainer: spark-store
 EOF
 	printf "%20s\n" "[ OK ]"
