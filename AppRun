@@ -19,7 +19,8 @@ help()
 	echo ""
 	echo ""
 	echo "Required:"
-	echo "        -n | --name <package_name>      what's the name of your package?"
+	echo "        -n | --Softname <package_name>      what's the softname of your package?"
+	echo "        -p | --Pkgname <package_name>   what's the Pkgname of your package?"
 	echo "        -v | --version <version>        which version of your package?"
 	echo "        -a | --arch <architecture>      which architecture of your software made?"
 	echo "                                            x86: i386, amd64"
@@ -43,7 +44,7 @@ gui()
 		--text="欢迎使用 Appimage2Deb，是一个由 xRetia Labs, uniartisan 创建的 AppImage 转换工具，可以帮助你快速完成 AppImage 转换为 Deb 软件包。"
 	
 	#__file_selection__
-	A2DFILE=$(zenity --file-selection --file-filter="*.appimage")
+	A2DFILE=$(zenity --file-selection --file-filter="*.*pp*mage")
 	if [ "$A2DFILE" = "" ]
 	then
 		zenity --warning --title="Appimage2Deb" \
@@ -54,19 +55,29 @@ gui()
 	
 	#__get_form_input__
 	A2DFORM=$(zenity --forms --title="Appimage2Deb" --text="创建 Deb 软件包" \
-	   --add-entry="软件包名" \
+	   --add-entry="软件名称" \
+	   --add-entry="软件包名(仅支持小写字母和-，不支持特殊字符，中文，大写字母等）" \
 	   --add-entry="软件版本" \
 	   --add-list="软件架构" --list-values="amd64|i386|all")
-	A2DNAME=$(echo $A2DFORM | awk -F\| '{print $1}')
-	A2DVER=$(echo $A2DFORM | awk -F\| '{print $2}')
-	A2DARCH=$(echo $A2DFORM | awk -F\| '{print $3}')
+	A2DSOFTNAME=$(echo $A2DFORM | awk -F\| '{print $1}')   
+	A2DPKGNAME=$(echo $A2DFORM | awk -F\| '{print $2}')
+	A2DVER=$(echo $A2DFORM | awk -F\| '{print $3}')
+	A2DARCH=$(echo $A2DFORM | awk -F\| '{print $4}')
 	
 	#__check_input__
-	if [ "$A2DNAME" = "" ]
+	if [ "$A2DSOFTNAME" = "" ]
 	then
 		zenity --warning --title="Appimage2Deb" \
 			--width 200 \
-			--text="您没有输入有效的软件软件包名，再见！"
+			--text="您没有输入有效的软件名，再见！"
+		exit 1
+	fi
+
+	if [ "$A2DPKGNAME" = "" ]
+	then
+		zenity --warning --title="Appimage2Deb" \
+			--width 200 \
+			--text="您没有输入有效的软件包名，再见！"
 		exit 1
 	fi
 	
@@ -97,9 +108,9 @@ check_args()
 		exit 1
 	fi
 	
-	if [ "$A2DNAME" = "" ]
+	if [ "$A2DPKGNAME" = "" ]
 	then
-		echo "Appimage2Deb: **Error**: You must give a name for your package, but '$A2DNAME' you given."
+		echo "Appimage2Deb: **Error**: You must give a Pkgname for your package, but '$A2DPKGNAME' you given."
 		exit 1
 	fi
 	
@@ -143,7 +154,7 @@ a2dconvert()
 		echo "# 正在创建 Deb 软件包目录结构 ..."
 	fi
 	printf "%-60s" "* creating deb package directory structures ..."
-	A2DSEEDPKG="/tmp/$A2DSEED/CONTENTS/opt/durapps/a2d-packages/$A2DNAME"
+	A2DSEEDPKG="/tmp/$A2DSEED/CONTENTS/opt/durapps/a2d-packages/$A2DPKGNAME"
 	A2DSEEDDESK="/tmp/$A2DSEED/CONTENTS/usr/share/applications"
 	mkdir -p $A2DSEEDPKG
 	cp $A2DFILE $A2DSEEDPKG/base.AppImage
@@ -158,28 +169,31 @@ a2dconvert()
 	printf "%-60s" "* extracting application icon from appimage ..."
 	chmod +x $A2DFILE
 	$A2DFILE --appimage-extract >/dev/null 2>&1
-	cp squashfs-root/*.svg $A2DSEEDPKG/$A2DNAME.svg >/dev/null 2>&1
-	cp squashfs-root/*.png $A2DSEEDPKG/$A2DNAME.png >/dev/null 2>&1
+	cp squashfs-root/*.svg $A2DSEEDPKG/$A2DPKGNAME.svg >/dev/null 2>&1
+	cp squashfs-root/*.png $A2DSEEDPKG/$A2DPKGNAME.png >/dev/null 2>&1
 	printf "%20s\n" "[ OK ]"
 
 	#__get_desktop_from_appimage__
 	printf "%-60s" "* extracting application desktop from appimage ..."
 	mkdir -p $A2DSEEDDESK/
-	cp squashfs-root/*.desktop $A2DSEEDDESK/$A2DNAME.desktop >/dev/null 2>&1
+	cp squashfs-root/*.desktop $A2DSEEDDESK/$A2DPKGNAME.desktop >/dev/null 2>&1
 	if [ "$A2DSAND" = "yes" ]
 	then
-		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DNAME/base.AppImage --no-sandbox" $A2DSEEDDESK/$A2DNAME.desktop
+		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DPKGNAME/base.AppImage --no-sandbox %U" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	else
-		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DNAME/base.AppImage" $A2DSEEDDESK/$A2DNAME.desktop
+		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DPKGNAME/base.AppImage %U" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	fi
-	if [ -f $A2DSEEDPKG/$A2DNAME.svg ]
+	if [ -f $A2DSEEDPKG/$A2DPKGNAME.svg ]
 	then
-		config_edit "Icon" "/opt/durapps/a2d-packages/$A2DNAME/$A2DNAME.svg" $A2DSEEDDESK/$A2DNAME.desktop
+		config_edit "Icon" "/opt/durapps/a2d-packages/$A2DPKGNAME/$A2DPKGNAME.svg" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	else
-		config_edit "Icon" "/opt/durapps/a2d-packages/$A2DNAME/$A2DNAME.png" $A2DSEEDDESK/$A2DNAME.desktop
+		config_edit "Icon" "/opt/durapps/a2d-packages/$A2DPKGNAME/$A2DPKGNAME.png" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	fi
-	#config_edit "Name" "$A2DNAME" $A2DSEEDDESK/$A2DNAME.desktop
-	chmod +x $A2DSEEDDESK/$A2DNAME.desktop
+	config_edit "Name" "$A2DSOFTNAME" $A2DSEEDDESK/$A2DPKGNAME.desktop
+	config_edit "Name\[zh_CN\]" "$A2DSOFTNAME" $A2DSEEDDESK/$A2DPKGNAME.desktop
+	
+
+	chmod +x $A2DSEEDDESK/$A2DPKGNAME.desktop
 	printf "%20s\n" "[ OK ]"
 
 	#__debian_control__
@@ -191,10 +205,10 @@ a2dconvert()
 	rm -rf /tmp/$A2DSEED/DEBIAN/control
 	mkdir -p /tmp/$A2DSEED/DEBIAN/
 	cat <<EOF > /tmp/$A2DSEED/DEBIAN/control
-Package: $A2DNAME
+Package: $A2DPKGNAME
 Version: $A2DVER
 Architecture: $A2DARCH
-Description: $A2DNAME Software Package created by Appimage2Deb
+Description: $A2DPKGNAME Software Package created by Appimage2Deb
 Depends: 
  libfuse2
 Maintainer: spark-store
@@ -243,8 +257,13 @@ case $key in
     shift # past argument
     shift # past value
     ;;
-    -n|--name)
-    A2DNAME="$2"
+    -n|--Softname)
+    A2DSOFTNAME="$2"
+    shift # past argument
+    shift # past value
+    ;;
+	-p|--Pkgname)
+    A2DPKGNAME="$2"
     shift # past argument
     shift # past value
     ;;
@@ -321,7 +340,7 @@ echo "> Copyright (c) 2021 xRetia Labs"
 echo ""
 echo "********************************************************************************"
 echo "APPIMAGE        = ${A2DFILE}"
-echo "PACKAGE NAME    = ${A2DNAME}"
+echo "PACKAGE NAME    = ${A2DPKGNAME}"
 echo "ARCHITECTURE    = ${A2DARCH}"
 echo "VERSION         = ${A2DVER}"
 echo "RANDOM SEED     = ${A2DSEED}"
