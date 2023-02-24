@@ -1,5 +1,5 @@
 Package: appimage2deb
-Version: 2.1b20230224
+Version: 2.2b20230224
 Architecture: amd64
 Description: Convert AppImage into Deb Package
 Depends: zenity
