@@ -10,7 +10,7 @@ fi
 help()
 {
 	echo "Welcome to use Appimage2Deb Kitchen!"
-	echo "> Appimage2Deb 2.2b20230228"
+	echo "> Appimage2Deb 2.3b20230228"
 	echo "> Copyright (c) 2021 xRetia Labs, uniartisan"
 	echo ""
 	echo "About xRetia Labs"
@@ -157,8 +157,8 @@ a2dconvert()
 	A2DSEEDPKG="/tmp/$A2DSEED/CONTENTS/opt/durapps/a2d-packages/$A2DPKGNAME"
 	A2DSEEDDESK="/tmp/$A2DSEED/CONTENTS/usr/share/applications"
 	mkdir -p $A2DSEEDPKG
-	cp $A2DFILE $A2DSEEDPKG/base.AppImage
-	chmod +x $A2DSEEDPKG/base.AppImage
+	# cp $A2DFILE $A2DSEEDPKG/base.AppImage
+	# chmod +x $A2DSEEDPKG/base.AppImage
 	printf "%20s\n" "[ OK ]"
 
 	#__get_icon_from_appimage__
@@ -180,14 +180,17 @@ a2dconvert()
 	#__get_desktop_from_appimage__
 	printf "%-60s" "* extracting application desktop from appimage ..."
 	mkdir -p $A2DSEEDDESK/
+	mkdir -p $A2DSEEDPKG/squashfs-root/
 	cp squashfs-root/*.desktop $A2DSEEDDESK/$A2DPKGNAME.desktop >/dev/null 2>&1
+	cp -r squashfs-root/* $A2DSEEDPKG/squashfs-root/ >/dev/null 2>&1
+
 	if [ "$A2DSAND" = "yes" ]
 	then
-		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DPKGNAME/base.AppImage --no-sandbox %U" $A2DSEEDDESK/$A2DPKGNAME.desktop
+		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DPKGNAME/squashfs-root/AppRun --no-sandbox %U" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	else
-		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DPKGNAME/base.AppImage %U" $A2DSEEDDESK/$A2DPKGNAME.desktop
+		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DPKGNAME/squashfs-root/AppRun %U" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	fi
-	config_edit "TryExec" "/opt/durapps/a2d-packages/$A2DPKGNAME/base.AppImage" $A2DSEEDDESK/$A2DPKGNAME.desktop
+	config_edit "TryExec" "/opt/durapps/a2d-packages/$A2DPKGNAME/squashfs-root/AppRun" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	if [ -f $A2DSEEDPKG/$A2DPKGNAME.svg ]
 	then
 		config_edit "Icon" "/opt/durapps/a2d-packages/$A2DPKGNAME/$A2DPKGNAME.svg" $A2DSEEDDESK/$A2DPKGNAME.desktop
