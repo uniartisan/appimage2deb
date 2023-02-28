@@ -4,7 +4,7 @@ A tool for convernt *.AppImage executable to debian package.
 
 ```
 Welcome to use Appimage2Deb Kitchen!
-> Appimage2Deb 2.2b20230224
+> Appimage2Deb 2.2b20230228
 > Copyright (c) 2021 xRetia Labs
 
 About xRetia Labs
@@ -36,7 +36,7 @@ bash, sed, dpkg, grep, tar, gzip, bzip2, lzma, coreutils, binutils
 
 ** !! THE PROJECT BASED ON THE MIT LICENSE !! **
 
-Appimage2Deb 2.2b20230224  
+Appimage2Deb 2.2b20230228  
 Copyright (c) 2021 xRetia Labs    
     
 About xRetia Labs    

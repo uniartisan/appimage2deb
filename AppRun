@@ -10,7 +10,7 @@ fi
 help()
 {
 	echo "Welcome to use Appimage2Deb Kitchen!"
-	echo "> Appimage2Deb 2.2b20230224"
+	echo "> Appimage2Deb 2.2b20230228"
 	echo "> Copyright (c) 2021 xRetia Labs, uniartisan"
 	echo ""
 	echo "About xRetia Labs"
@@ -169,8 +169,12 @@ a2dconvert()
 	printf "%-60s" "* extracting application icon from appimage ..."
 	chmod +x $A2DFILE
 	$A2DFILE --appimage-extract >/dev/null 2>&1
+
+	desktop_png_filename=$(basename squashfs-root/*.png)
 	cp squashfs-root/*.svg $A2DSEEDPKG/$A2DPKGNAME.svg >/dev/null 2>&1
-	(cp squashfs-root/usr/share/icons/hicolor/scalable/apps/*.png $A2DSEEDPKG/$A2DPKGNAME.png) || (cp squashfs-root/usr/share/icons/hicolor/128x128/apps/*.png $A2DSEEDPKG/$A2DPKGNAME.png) || (cp squashfs-root/*.png $A2DSEEDPKG/$A2DPKGNAME.png) >/dev/null 2>&1
+	cp squashfs-root/$desktop_png_filename $A2DSEEDPKG/$A2DPKGNAME.png
+	cp squashfs-root/usr/share/icons/hicolor/128x128/apps/$desktop_png_filename $A2DSEEDPKG/$A2DPKGNAME.png
+	cp squashfs-root/usr/share/icons/hicolor/256x256/apps/$desktop_png_filename $A2DSEEDPKG/$A2DPKGNAME.png
 	printf "%20s\n" "[ OK ]"
 
 	#__get_desktop_from_appimage__
@@ -183,6 +187,7 @@ a2dconvert()
 	else
 		config_edit "Exec" "/opt/durapps/a2d-packages/$A2DPKGNAME/base.AppImage %U" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	fi
+	config_edit "TryExec" "/opt/durapps/a2d-packages/$A2DPKGNAME/base.AppImage" $A2DSEEDDESK/$A2DPKGNAME.desktop
 	if [ -f $A2DSEEDPKG/$A2DPKGNAME.svg ]
 	then
 		config_edit "Icon" "/opt/durapps/a2d-packages/$A2DPKGNAME/$A2DPKGNAME.svg" $A2DSEEDDESK/$A2DPKGNAME.desktop
